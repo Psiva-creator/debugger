@@ -1,3 +1,6 @@
+// Development helper: Manual debugging script
+// Not part of the test suite - for development use only
+
 const { parse } = require('../src/parser.js');
 const { start } = require('../src/engine/executor.js');
 

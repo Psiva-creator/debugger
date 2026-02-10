@@ -1,7 +1,0 @@
-body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;color:#111}
-#app{max-width:900px}
-.box{background:#f6f8fa;padding:10px;border-radius:6px;margin:10px 0}
-.events{list-style:none;padding:0;max-height:300px;overflow:auto}
-.events li{padding:6px;border-bottom:1px solid #eee}
-.events li.active{background:#e6f7ff}
-#controls{display:flex;gap:8px;align-items:center}
