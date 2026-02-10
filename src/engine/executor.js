@@ -601,20 +601,117 @@
     return false;
   };
 
-  // TODO: WhileStatement
+  // WhileStatement: evaluate test, execute body repeatedly while true
   ExecutionState.prototype.executeWhileStatement = function (frame) {
-    // Placeholder
-    this.error('unsupported-node', 'WhileStatement not yet implemented');
-    this.popFrame();
-    return true;
+    const node = this.astNodeMap[frame.nodeId];
+    if (frame.stage === 'evaluate-test') {
+      this.emitEvent('enter-statement', { nodeId: frame.nodeId, nodeType: 'WhileStatement', scopeId: this.currentScope().id });
+      // Push test expression frame for evaluation
+      this.pushFrame(node.test.id, node.test.type, this.getInitialStage(node.test.type));
+      frame.stage = 'branch-decision';
+      return true;
+    } else if (frame.stage === 'branch-decision') {
+      // Test evaluated; pop value from evalStack
+      if (this.evalStack.length === 0) {
+        this.error('eval-stack', 'Expected test value on evalStack');
+        return true;
+      }
+      const testValue = this.evalStack.pop();
+      const isTruthy = Boolean(testValue);
+
+      this.emitEvent('branch', {
+        nodeId: frame.nodeId,
+        nodeType: 'WhileStatement',
+        testValue: isTruthy,
+        direction: isTruthy ? 'loop' : 'exit',
+        scopeId: this.currentScope().id
+      });
+
+      if (isTruthy && node.body) {
+        // Execute body, then return to test evaluation
+        this.pushFrame(node.body.id, node.body.type, this.getInitialStage(node.body.type));
+        frame.stage = 'evaluate-test';
+        return true;
+      } else {
+        // Condition false: exit loop
+        frame.stage = 'done';
+        return true;
+      }
+    } else if (frame.stage === 'done') {
+      this.emitEvent('exit-statement', { nodeId: frame.nodeId, nodeType: 'WhileStatement', scopeId: this.currentScope().id });
+      this.popFrame();
+      return true;
+    }
+    return false;
   };
 
-  // TODO: ForStatement
+  // ForStatement: init once, test before each iteration, body, update, repeat
   ExecutionState.prototype.executeForStatement = function (frame) {
-    // Placeholder
-    this.error('unsupported-node', 'ForStatement not yet implemented');
-    this.popFrame();
-    return true;
+    const node = this.astNodeMap[frame.nodeId];
+    if (frame.stage === 'enter') {
+      this.emitEvent('enter-statement', { nodeId: frame.nodeId, nodeType: 'ForStatement', scopeId: this.currentScope().id });
+      // Create loop-local scope (for let/const in init)
+      this.pushScope('for-loop');
+      frame.stage = 'evaluate-init';
+      return true;
+    } else if (frame.stage === 'evaluate-init') {
+      // Execute init statement/declaration if present
+      if (node.init) {
+        this.pushFrame(node.init.id, node.init.type, this.getInitialStage(node.init.type));
+      }
+      frame.stage = 'evaluate-test';
+      return true;
+    } else if (frame.stage === 'evaluate-test') {
+      // Evaluate test condition if present
+      if (node.test) {
+        this.pushFrame(node.test.id, node.test.type, this.getInitialStage(node.test.type));
+      }
+      frame.stage = 'branch-decision';
+      return true;
+    } else if (frame.stage === 'branch-decision') {
+      // Determine branch: test if condition exists, otherwise always true (infinite loop, guarded by maxSteps)
+      let testValue = true;
+      if (node.test) {
+        if (this.evalStack.length === 0) {
+          this.error('eval-stack', 'Expected test value on evalStack');
+          return true;
+        }
+        testValue = this.evalStack.pop();
+      }
+      const isTruthy = Boolean(testValue);
+
+      this.emitEvent('branch', {
+        nodeId: frame.nodeId,
+        nodeType: 'ForStatement',
+        testValue: isTruthy,
+        direction: isTruthy ? 'loop' : 'exit',
+        scopeId: this.currentScope().id
+      });
+
+      if (isTruthy && node.body) {
+        // Execute body, then go to update
+        this.pushFrame(node.body.id, node.body.type, this.getInitialStage(node.body.type));
+        frame.stage = 'body-done';
+        return true;
+      } else {
+        // Test false or no body: exit loop
+        frame.stage = 'done';
+        return true;
+      }
+    } else if (frame.stage === 'body-done') {
+      // After body executes, run update and return to test
+      if (node.update) {
+        this.pushFrame(node.update.id, node.update.type, this.getInitialStage(node.update.type));
+      }
+      frame.stage = 'evaluate-test';
+      return true;
+    } else if (frame.stage === 'done') {
+      this.emitEvent('exit-statement', { nodeId: frame.nodeId, nodeType: 'ForStatement', scopeId: this.currentScope().id });
+      this.popScope();
+      this.popFrame();
+      return true;
+    }
+    return false;
   };
 
   // ============================================================================

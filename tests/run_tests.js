@@ -272,3 +272,105 @@ tests.push({
   console.log('\nTests passed:', passed, '/', tests.length);
   process.exit(passed === tests.length ? 0 : 1);
 })();
+
+
+
+
+
+function testIfElseFalseBranch() {
+  const code = `
+    let x = -1;
+    if (x > 0) {
+      x = 1;
+    } else {
+      x = 2;
+    }
+  `;
+
+  const { ast } = parse(code);
+  const state = start(ast, { maxSteps: 100 });
+
+  const events = [];
+  while (state.status !== 'done') {
+    events.push(step(state));
+  }
+
+  const assignEvent = events.find(
+    e => e.type === 'assign' && e.name === 'x' && e.newValue === 2
+  );
+
+  if (!assignEvent) {
+    throw new Error('Else branch did not execute');
+  }
+
+  console.log('✓ If-Else false branch test passed');
+}
+
+testIfElseFalseBranch();
+
+
+
+
+
+function testWhileLoop() {
+  const code = `
+    let x = 0;
+    while (x < 3) {
+      x = x + 1;
+    }
+  `;
+
+  const { ast } = parse(code);
+  const state = start(ast, { maxSteps: 100 });
+
+  const events = [];
+  while (state.status !== 'done') {
+    events.push(step(state));
+  }
+
+  const finalAssign = events.filter(
+    e => e.type === 'assign' && e.name === 'x'
+  ).pop();
+
+  if (!finalAssign || finalAssign.newValue !== 3) {
+    throw new Error('While loop did not execute correctly');
+  }
+
+  console.log('✓ While loop test passed');
+}
+
+testWhileLoop();
+
+
+
+
+
+function testForLoop() {
+  const code = `
+    let x = 0;
+    for (let i = 0; i < 3; i = i + 1) {
+      x = i;
+    }
+  `;
+
+  const { ast } = parse(code);
+  const state = start(ast, { maxSteps: 200 });
+
+  const events = [];
+  while (state.status !== 'done') {
+    events.push(step(state));
+  }
+
+  const finalAssign = events.filter(
+    e => e.type === 'assign' && e.name === 'x'
+  ).pop();
+
+  if (!finalAssign || finalAssign.newValue !== 2) {
+    throw new Error('For loop did not execute correctly');
+  }
+
+  console.log('✓ For loop test passed');
+}
+
+testForLoop();
+

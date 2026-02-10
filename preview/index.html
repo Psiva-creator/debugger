@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Debugger Preview</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <h1>Execution Trace Preview</h1>
+    <div id="controls">
+      <button id="play">Play</button>
+      <button id="pause">Pause</button>
+      <label>Speed: <input id="speed" type="range" min="50" max="2000" value="600"/></label>
+    </div>
+    <pre id="source" class="box"></pre>
+    <div id="current" class="box"></div>
+    <ul id="events" class="events"></ul>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
